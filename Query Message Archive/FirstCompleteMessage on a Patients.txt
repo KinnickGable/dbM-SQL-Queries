@@ -1,0 +1,29 @@
+
+/*  finds the first good message on a patient or list of patients */
+select btsinterchangeid
+	from dbmDILMessagesArchive.dbo.ArchMessage am1
+	join (select	 min(ArchMessageID) as archmessageid
+
+-- raw messages able to be saved.
+	from dbmDILMessagesArchive.dbo.ArchMessage am  with (nolock)
+-- next join last state of all messages
+ join (select btsinterchangeid, loadingstate as LastLoadingState
+		from dbmDILMessagesArchive.dbo.ArchMessageState ams with (nolock)
+		--make sure it is the last state by time with this join...
+		 join (select max(ArchmessageStateid) as maxarchmessagestateid from dbmDILMessagesArchive.dbo.ArchMessageState ams with (nolock)
+				join dbmDILMessagesArchive.dbo.ArchMessage am2 		 on  ams.btsinterchangeid=am2.BTSInterchangeID
+				/* where here is faster */
+		
+				--MessageID like '1'
+			where LoadingState=9
+				/*                            */
+				 group by ams.BTSInterchangeID) amss
+		  on ams.ArchMessageStateID=amss.maxarchmessagestateid) amsr
+ on am.BTSInterchangeID=amsr.BTSInterchangeID
+ --- human readable statue designation
+ join dbmDILMessagesArchive.dbo.luLoadingState lus
+ on amsr.LastLoadingState=lus.LoadingStateID
+ 
+Group by MessagePatientIDExt) mesx
+on am1.ArchMessageID=mesx.archmessageid
+ 
